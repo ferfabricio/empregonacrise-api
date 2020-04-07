@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 const Yup = require('yup')
 
@@ -16,30 +16,32 @@ const saveCompany = async event => {
   })
 
   try {
-    console.log(event)
-    await schema.validate(event.body)
+    await schema.validate(JSON.parse(event.body))
 
     return {
       statusCode: 200,
       body: JSON.stringify(
         {
           status: 'OK',
-          message: 'Empresa cadastrada com sucesso, assim que a empresa entrar no site iremos notificar o e-mail cadastrado.',
-          input: event,
+          message: 'Empresa cadastrada com sucesso, assim que a empresa entrar no site iremos notificar o e-mail cadastrado.'
         },
         null,
         2
-      ),
-    };
+      )
+    }
   } catch (e) {
     return {
       statusCode: 422,
-      body: JSON.stringify({
-        error: e.error
-      })
+      body: JSON.stringify(
+        {
+          error: e.error
+        },
+        null,
+        2
+      )
     }
   }
-};
+}
 
 module.exports = {
   saveCompany
