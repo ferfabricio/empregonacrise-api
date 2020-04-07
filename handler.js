@@ -1,6 +1,19 @@
 'use strict'
 
+const AWS = require('aws-sdk')
 const Yup = require('yup')
+
+const ddb = new AWS.DynamoDB.DocumentClient()
+
+const saveInDynamo = (data) => {
+  return ddb.put({
+    TableName: process.env.DYNAMODB_TABLE,
+    Item: {
+      ...data,
+      createdAt: new Date().toISOString()
+    }
+  }).promise()
+}
 
 const saveCompany = async event => {
   const schema = Yup.object().shape({
@@ -12,11 +25,14 @@ const saveCompany = async event => {
     processTime: Yup.mixed().oneOf(['until_7', 'until_15', 'more_than_15'], 'Por favor selecione um dos valores.').required('Por favor selecione um dos valores.'),
     remote: Yup.mixed().oneOf(['no', 'corona', 'yes'], 'Por favor selecione um dos valores.').required('Por favor selecione um dos valores.'),
     website: Yup.string().url('Por favor informe uma URL válida.').required('Por favor informe uma URL válida.'),
+    logoUrl: Yup.string().url('Por favor informe uma URL válida.').required('Por favor informe uma URL válida.'),
     opportunities: Yup.string('Por favor informe uma URL válida.').url().required('Por favor informe uma URL válida.')
   })
 
   try {
-    await schema.validate(JSON.parse(event.body))
+    const data = JSON.parse(event.body)
+    await schema.validate(data)
+    await saveInDynamo(data)
 
     return {
       statusCode: 200,
@@ -24,20 +40,18 @@ const saveCompany = async event => {
         {
           status: 'OK',
           message: 'Empresa cadastrada com sucesso, assim que a empresa entrar no site iremos notificar o e-mail cadastrado.'
-        },
-        null,
-        2
+        }
       )
     }
   } catch (e) {
+    console.error(e)
+
     return {
       statusCode: 422,
       body: JSON.stringify(
         {
-          error: e.error
-        },
-        null,
-        2
+          errors: e.errors ? e.errors : ['Internal server error']
+        }
       )
     }
   }
